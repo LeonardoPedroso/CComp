@@ -1,0 +1,89 @@
+-------------------------------------------------------------------------------
+CComp - Lab notes
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+I. System identification 
+-------------------------------------------------------------------------------
+
+0. --------------- Qualitative overview ---------------------------------------
+mechanical model overview
+- the bar is oscilating
+- there is whiplash -> as soon a torque is applied the tip of the bar moves in the opposite direction -> zero in the rhsp -> proportional control is tricky -> the model has to include the whiplash effect
+
+1. --------------- Stimulus definition --------------------------------------------------------
+Duration of stimulus = 120s;
+f = 0.4 Hz switching frequency -> too high does not allow for good steady state identification, but too low does not capture transient response
+t = 0:1/fs:T, fs - sampling frequency fs = 100 Hz -> sampling frequency ha stop be fast enough to capture transient responses 
+u = square(2*pi*f*t);
+u = idinput(length(t), 'prbs',[0 B]), B = 0.1-0.2 PRBS can also be used, which allows for better identification
+
+2. --------------- Apply stimulus ---------------------------------------------
+[t,u] from workspace -> simulink model -> to workspace [t,u,y]
+
+3. --------------- Preprocessing ----------------------------------------------
+- system has one integrator -> constant non null input -> motor just spins
+-> started is to work with a modified system Y'(s) = s*Y(s) instead of Y(s) (in continuous time)
+
+- in discrete time y'(n) = y(n)-y(n-1) -Z does not work there is noise -> the noise spectrum has high frequencies -> ideal differentiators add a lot of highth frequency noise
+Ideal - Y'(z) = (1-z^{-1})Y(z)
+Real - Y'(z) = (1-z^{-1})*((1-\lambda)/(1-\lambda*z^{-1)))Y(z), \lambda = 0.8-0.95
+in matlab -> y' = filter(N,D,y), whre N and D are the num and den of y'(z)/y(z)
+
+Burn-in + detrend
+- discard mechanical transient delete fist 10s for fs = 100, consider u(1:10*fs) = []
+
+4. --------------- Identification ---------------------------------------------
+z = [y' u];
+M = armax(z,[nA nB nC nK]), nX are polynomial lengths
+nA order of A(z) = 1+a_1z^{.1}+...+a_nAz^{-nA} (denominator)
+nB, nK : B(z) = z^{-nK}(b_1+...+b_nbz^{-nb-1}) (numerator)
+nC: C(z) = 1+ c_1z^{-1} + ... + c_nCz^{-nC}
+
+Identification has to model the mechanical system including some important qualitative characteristics:
+- the bar is oscilating
+- there is whiplash -> as soon a torque is applied the tip of the bar moves in the opposite direction -> zero in the rhsp -> proportional control is tricky -> the model has to include the whiplash effect
+
+On the z-plane
+- complex conjugate poles (oscillations)
+- differentiator pole on the positive real axis <1
+- whiplash - noninimum phase zero o the positive rela axis >1
+
+VERY IMPORTANT -> model identification and validation must verify the existence of these properties
+
+Choose nX -> try some and see what works best (not randomly -> educated guesses using pole colocation and transfer function partial construction)
+-> the main goal is not to develop a method that models perfectly, but to model it accurately enough and that is as simple as possible -> we want to synthesise a controller for a system that is as simple as possible 
+
+-> run some 100 experiments -> sort out good and bad ones-> rank according to accuracy -> discard all but the top 10 -> evaluate the effects above in all the selected models -> it's not worth it to increase a the order to gain 2% for example  (trail and error is not really a problem here :))
+
+4.1 Validation/Model slection
+
+Tests to evaluate the model that was obtained are conducted using an int signal that was not used in the training set
+M = armax(z,[nA ... nK])
+parameter Fit inside M object between 0% and 100% -> is the same of testing the model with data from the training set.  
+
+z1 = [y1' u1]; training set 
+z2 = [y2' u2]; test set 
+M = armax(z,[nA ... nK])
+[~,fit] = compare(z2,M); has to yield about 90%
+(train with square wave and set with PRBS for instance)
+
+5. --------------- Model validation -------------------------------------------
+[den1, num1] = polyData(M); B(z) = num, A(z) = den
+look in the time domain to check to qualitative properties of the mechanical system
+y^' (estimated output) = idsim(u,M) or y^' = filter(num1,den1,u);
+see how well y^' matches y'
+
+Zplane(num1,den1); to see the pole zero plot -> see the properties above
+
+We can choose 2 or 3 models to sythesize a controller in the next part of the project -> these together with 4.1 and fit quality (4.0) are the criteria for the selection of a particular model
+
+6. --------------- Postprocessing -------------------------------------------
+Undo the effect of the differentiator 
+
+
+
+
+
+
+
