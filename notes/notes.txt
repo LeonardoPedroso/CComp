@@ -11,12 +11,12 @@ mechanical model overview
 - the bar is oscilating
 - there is whiplash -> as soon a torque is applied the tip of the bar moves in the opposite direction -> zero in the rhsp -> proportional control is tricky -> the model has to include the whiplash effect
 
-1. --------------- Stimulus definition --------------------------------------------------------
+1. --------------- Stimulus definition ----------------------------------------
 Duration of stimulus = 120s;
 f = 0.4 Hz switching frequency -> too high does not allow for good steady state identification, but too low does not capture transient response
 t = 0:1/fs:T, fs - sampling frequency fs = 100 Hz -> sampling frequency ha stop be fast enough to capture transient responses 
 u = square(2*pi*f*t);
-u = idinput(length(t), 'prbs',[0 B]), B = 0.1-0.2 PRBS can also be used, which allows for better identification
+u = idinput(length(t), 'prbs',[0 B]), B = 0.1-0.2 PRBS can also be used, which allows for better identification amplitude (1V-5V)
 
 2. --------------- Apply stimulus ---------------------------------------------
 [t,u] from workspace -> simulink model -> to workspace [t,u,y]
@@ -54,9 +54,33 @@ VERY IMPORTANT -> model identification and validation must verify the existence 
 Choose nX -> try some and see what works best (not randomly -> educated guesses using pole colocation and transfer function partial construction)
 -> the main goal is not to develop a method that models perfectly, but to model it accurately enough and that is as simple as possible -> we want to synthesise a controller for a system that is as simple as possible 
 
--> run some 100 experiments -> sort out good and bad ones-> rank according to accuracy -> discard all but the top 10 -> evaluate the effects above in all the selected models -> it's not worth it to increase a the order to gain 2% for example  (trail and error is not really a problem here :))
+-> run some 100 experiments -> sort out good and bad ones-> rank according to accuracy in model validation
 
-4.1 Validation/Model slection
+for nA = ...
+	for nB = ...
+		for nK = ...
+			nC = NA;
+			if !valid(nA nB nC nK)
+				continue;
+			end
+			M = armx(z1,[nA nB nC nK]);
+			[~,fit] = compare(z2,M);
+			% Store fit
+		end
+	end
+end	
+
+testing polynomial nX validity:
+the objective is to obtain a discrete sate space model 
+x(k+1) = Ax(k) + Bu(k)
+y(k) = Cx(k) +Du(k)
+We need:
+- D = 0;
+- degree(num) < degree(den) causality
+- nK+nB-1 <= nA % test condition for validity of the model (justification in 6. post processing)
+
+5. --------------- Model validation -------------------------------------------
+-> sort out the 100 experiments good and bad ones-> rank according to accuracy -> discard all but the top 10 -> evaluate the effects above in all the selected models -> it's not worth it to increase a the order to gain 2% for example  (trail and error is not really a problem here :))
 
 Tests to evaluate the model that was obtained are conducted using an int signal that was not used in the training set
 M = armax(z,[nA ... nK])
@@ -68,7 +92,6 @@ M = armax(z,[nA ... nK])
 [~,fit] = compare(z2,M); has to yield about 90%
 (train with square wave and set with PRBS for instance)
 
-5. --------------- Model validation -------------------------------------------
 [den1, num1] = polyData(M); B(z) = num, A(z) = den
 look in the time domain to check to qualitative properties of the mechanical system
 y^' (estimated output) = idsim(u,M) or y^' = filter(num1,den1,u);
@@ -78,12 +101,34 @@ Zplane(num1,den1); to see the pole zero plot -> see the properties above
 
 We can choose 2 or 3 models to sythesize a controller in the next part of the project -> these together with 4.1 and fit quality (4.0) are the criteria for the selection of a particular model
 
+In the heuristic selection among the top 10 systems, it is very important to:
+see in the time response:
+- oscillation
+- non inimum phase zero (whiplash)
+and in the z plane
+-  the non minimum phase zero 
+- at least one pair of complex conjugate poles
+- differentiator 
+This ensures the model is a good qualitative candidate to model the system.
+
 6. --------------- Postprocessing -------------------------------------------
-Undo the effect of the differentiator 
+Undo the effect of the differentiator -> cascade an integrator 1/(1-z^{-1})
+-> B(z)/(A(z)*(1-z^{-1})) -> A(z) = A'(z)*(1-z^{-1}) (den = conv(den1,[1,-1]))
 
+~y is close enough to y
 
+TF = B(z)/(A(z)*(1-z^{-1})) 
 
+Propoer global transfer function
+deg(B(z)) < degree(A(z)*()1-z^{-1}) => degree(B(z)) <= degree(A(z)) -> in the lower branch of ARMAx B(z) = z^{-nk}B'(z) where order of degree(B'(z)) n_B-1
+Therefore nK+nB-1 <= nA % test condition for validity of the model 
 
+Convert to state-space 
+[num, den] = eqtflength(num1,conv(den1.[1 -1]));
+[A,B,C,D] = tf2ss(num,den); -> check D = 0
+
+Final validation 
+y^= dldim)(A,B,C,D,u); -> should match observed y
 
 
 
