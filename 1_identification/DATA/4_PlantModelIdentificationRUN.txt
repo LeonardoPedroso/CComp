@@ -1,0 +1,20 @@
+RUN05 ------------
+Lower frequencies to have better control over zeros
+uB_RBS_span = [0.01 0.1]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.01 0.2]; % (Hz) % Define square wave frequency
+lambda = 0.8
+------------------
+
+RUN06 ------------
+Higher frequencies to have better control over zeros
+uB_RBS_span = [0.1 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.3 0.6]; % (Hz) % Define square wave frequency
+lambda = 0.8
+------------------
+
+RUN07 ------------
+lower lambda to approximate system better
+uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.1 0.6]; % (Hz) % Define square wave frequency
+lambda = 0.3
+------------------

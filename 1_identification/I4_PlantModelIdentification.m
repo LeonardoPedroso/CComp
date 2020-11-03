@@ -3,13 +3,14 @@
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 3;
+RUN = 7;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 folder = sprintf("./DATA/4_PlantModelIdentification%02d/",RUN);
 % Create directory
 mkdir(folder);
 mkdir(folder+"filterTuning");
+mkdir(folder+"polesZerosTrue");
 % Save directory path
 save(folder+"RUN.mat",...
     'RUN','folder');
@@ -17,12 +18,12 @@ save(folder+"RUN.mat",...
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 3;
+RUN = 7;
 T = 120; %(s) Duration of the stimulus
 Nfs = 1; % number of frequencies to test
 Nu = 10; % number of input signals (has to be even)
-uB_RBS_span = [0.05 0.2]; % (Hz) % Define PRBS bandwidth 
-uf_square_span = [0.1 0.5]; % (Hz) % Define square wave frequency
+uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.1 0.6]; % (Hz) % Define square wave frequency
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -58,12 +59,13 @@ end
 toc;
 % Save input signals
 save(folder+"inputSignals.mat",...
-    'T','Nfs','fs','Ts','t','Nu','uB_PRBS','uf_square','u');
+    'T','Nfs','fs','Ts','t','Nu','uB_PRBS','uf_square','u',...
+    'uB_RBS_span','uf_square_span');
 %% 4.2 Simulate systems with selected input signals
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 3;
+RUN = 7;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -88,7 +90,7 @@ save(folder+"inputSignalsResponse.mat",...
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 3;
+RUN = 7;
 isTuning = false;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
@@ -162,7 +164,7 @@ if isTuning
         hold off;
     end
     % Select best lambda 
-    lambdaTuned = 0.8;
+    lambdaTuned = 0.6;
     % Save filter tuning data
     save(folder+sprintf("filterTuning/tuningData_i%02d_j%02d.mat",i,j),...
         'lambda','yf','lambdaTuned');
@@ -170,8 +172,12 @@ if isTuning
     save(folder+"filterTuning/lambdaTuned.mat",...
         'lambdaTuned');
 else
-   % Filtering + detrending
-    lambda = 0.8;
+    % ------------------------------------------------------------------- %
+    % --------------------------- SET PARAMETERS ------------------------ %
+    lambda = 0.3;
+    % ------------------------------------------------------------------- %
+    % ------------------------------------------------------------------- %    
+    % Filtering + detrending
     Afilter = [1 -lambda];
     Bfilter = (1-lambda)*[1 -1];
     tic;
@@ -188,13 +194,13 @@ else
     toc;
     % Save filtered responses
     save(folder+"inputSignalsResponseProcessed.mat",...
-        'yf','uf');
+        'yf','uf','lambda');
 end
 %% 4.4 Identification
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 3;
+RUN = 7;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -244,7 +250,7 @@ save(folder+"identificationCellArray.mat",...
 % ------------------------------------- %
 %% 4.5 Model validation                
 clear;
-RUN = 3;
+RUN = 7;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
@@ -253,7 +259,7 @@ load(folder+"inputSignals.mat",...
     'Nfs','Nu');
 % Load filtered responses
 load(folder+"inputSignalsResponseProcessed.mat",...
-        'yf','uf');
+    'yf','uf');
 % Load filtered responses
 load(folder+"identificationCellArray.mat",...
     'M','nABCK','Nidentification');
@@ -299,15 +305,12 @@ j = 1;
 % end
 toc;
 
-% ------------- Save Data ------------- %
-% Save filtered responses
+% Save identification fitness data
 save(folder+"identificationFitness.mat",...
     'fitM','bestFitFit','bestFitCount','bestFitU');
-% ------------------------------------- %
-
 %% 4.5.1 Check results
 clear;
-RUN = 3;
+RUN = 7;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
@@ -315,8 +318,15 @@ load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
 load(folder+"identificationCellArray.mat",...
     'M');
 load(folder+"identificationFitness.mat",...
-    'bestFitCount','bestFitU');
+    'bestFitCount','bestFitU','bestFitFit');
 
+%% 4.5.1. Validade best identifications qualitatively (frequency)
+j = 1;
+squeeze(bestFitFit(:,j,:))
+squeeze(bestFitU(:,j,:))
+squeeze(bestFitCount(:,j,:))
+
+%% 4.5.1. Validade best identifications qualitatively (pole zero position)
 poleValidation = true;
 nA = 5;
 b = 1;
@@ -329,35 +339,112 @@ end
 
 % ---------------------------------------------------------------------- %
 % ------------------------ CHOOSE IDENTIFICATION ----------------------- %
+chooseIdentification = false;
+j = 1;
 nA = 5; % order
 b = 1; % b-th best
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
+if chooseIdentification 
+    load(folder+"inputSignals.mat",...
+        'fs','Ts');
+    MId = M{bestFitU(nA-2,j,b),j,bestFitCount(nA-2,j,b)};
+    fsId = fs(j);
+    TsId = Ts(j);
+    orderId = nABCK(bestFitCount(nA-2,j,b),:);
+    fitId = bestFitFit(nA-2,j,b);
+    [denId_, numId_] = polydata(MId);
+    polesId_ = pole(tf(numId_,denId_,Ts(j)));
+    zerosId_ = pole(tf(numId_,denId_,Ts(j)));
+    figure('units','normalized','outerposition',[0 0 1 1]);
+    hold on;
+    set(gca,'FontSize',35);
+    ax = gca;
+    ax.XGrid = 'on';
+    ax.YGrid = 'on';
+    p = zplane(numId_,denId_); 
+    saveas(gcf,folder+...
+        sprintf("polesZerosID_j%02d.fig",...
+        j));
+    saveas(gcf,folder+...
+        sprintf("polesZerosID_j%02d.png",...
+        j));
+    hold off;
+    save(folder+"identification.mat",...
+        'MId','fsId','TsId','orderId','fitId','polesId_','zerosId_',...
+        'denId_', 'numId_');
+end
 
 %% 4.6 Postprocessing
 clear;
-RUN = 3;
+RUN = 7;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
-% Load number of input signals
-load(folder+"inputSignals.mat",...
-    'Nfs','Nu');
-% Load filtered responses
-load(folder+"inputSignalsResponseProcessed.mat",...
-        'yf','uf');
-% Load filtered responses
-load(folder+"identificationCellArray.mat",...
-    'M','nABCK','Nidentification');
+% Load identification
+load(folder+"identification.mat",...
+    'MId','fsId','orderId','fitId','polesId_','zerosId_',...
+    'denId_', 'numId_');
+% Add integrator
+[numId,denId] = eqtflength(numId_,conv(denId_,[1 -1]));
+[AId,BId,CId,DId] = tf2ss(numId,denId);
 
+polesId = pole(tf(num,den,TsId));
+zerosId = pole(tf(num,den,TsId));
 
+save(folder+"identification.mat",...
+    'MId','fsId', 'TsId','orderId','fitId','polesId_','zerosId_',...
+    'denId_', 'numId_','denId','numId','AId','BId','CId','DId',...
+    'polesId','zerosId');
 
-%% 4.$\infty$ Batota
+%% 4.\infty Batota :)
+clear;
+RUN = 7;
+% Load directory path
+load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
+    'folder');
 load("./model/barrassmodel.mat",...
     'Atrue','Btrue','Ctrue','Dtrue');
 load(folder+"inputSignals.mat",...
-    'T','Nfs','Ts','t','Nu','u');
+    'Ts');
+% Load number of input signals
+load(folder+"inputSignals.mat",...
+    'Nfs');
 
-j = 1;
-discreteSys = ss(Atrue,Btrue,Ctrue,Dtrue,Ts(j));
+polesTrue = cell(Nfs,1);
+zerosTrue = cell(Nfs,1);
+SysC = ss(Atrue,Btrue,Ctrue,Dtrue);
+for j = 1:Nfs
+    SysD = c2d(SysC,Ts(j));
+    polesTrue{j,1} = pole(SysD);
+    zerosTrue{j,1} = zero(SysD);
+end
+
+for j = 1:Nfs
+    figure('units','normalized','outerposition',[0 0 1 1]);
+    hold on;
+    set(gca,'FontSize',35);
+    ax = gca;
+    ax.XGrid = 'on';
+    ax.YGrid = 'on';
+    SysD = c2d(SysC,Ts(j));
+    [num,den] = tfdata(SysD,'v');
+    p = zplane(num,den); 
+    title("True poles and zeros for "+sprintf("$T_s = %f$",Ts(j))+" s",'Interpreter','latex');
+    saveas(gcf,folder+...
+        sprintf("polesZerosTrue/polesZerosTrue_j%02d.fig",...
+        j));
+    saveas(gcf,folder+...
+        sprintf("polesZerosTrue/polesZerosTrue_j%02d.png",...
+        j));
+    if j ~= 987
+        close(gcf);
+    else
+        hold off:
+    end
+end
+
+% Save true poles and zeros
+save(folder+"polesZerosTrue/polesZerosTrue.mat",...
+    'polesTrue','zerosTrue');
 
