@@ -18,3 +18,40 @@ uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth
 uf_square_span = [0.1 0.6]; % (Hz) % Define square wave frequency
 lambda = 0.3
 ------------------
+
+RUN08 ------------
+lower lambda to approximate system better
+uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.1 0.6]; % (Hz) % Define square wave frequency
+lambda = 0.7
+------------------
+
+RUN09 ------------
+lower lambda to approximate system better
+uB_RBS_span = [0.1 0.5]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.3 0.8]; % (Hz) % Define square wave frequency
+lambda = 0.3
+------------------
+
+RUN09 ------------
+lower lambda to approximate system better
+uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.2 0.6]; % (Hz) % Define square wave frequency
+lambda = 0.7
+------------------
+
+RUN010 ------------
+lower lambda to approximate system better
+uB_RBS_span = [0.05 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.2 0.6]; % (Hz) % Define square wave frequency
+lambda = 0.7
+------------------
+
+RUN11 ------------
+Nu = 10; % number of input signals (has to be even)
+uB_RBS_span = [0.1 0.3]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.2 0.6]; % (Hz) % Define square wave frequency
+fs_span = [100 1000];
+lambda = 0.6
+------------------
+

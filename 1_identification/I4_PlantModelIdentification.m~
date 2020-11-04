@@ -183,7 +183,7 @@ else
     Bfilter = (1-lambda)*[1 -1];
     tic;
     yf = cell(Nu,Nfs);
-    uf = cell(Nu,Nfs);
+    ubi = cell(Nu,Nfs);
     for j = 1:Nfs
         for i = 1:Nu
             % do not consider first 10 seconds
@@ -267,6 +267,7 @@ load(folder+"identificationCellArray.mat",...
 % Get fitness of each model
 tic;
 fitM = zeros(Nu,Nfs,Nidentification);
+j = 1;
 for j = 1:Nfs
     for i = 1:Nu
         for count = 1:Nidentification
@@ -289,6 +290,7 @@ bestFitFit = zeros(4,Nfs,Nbest);
 bestFitCount = zeros(4,Nfs,Nbest);
 bestFitU = zeros(4,Nfs,Nbest);
 count = 0;
+j = 1;
 for j = 1:Nfs
     for nA = 3:6
         for b = 1:(min(Nbest,sum(nABCK(:,1)==nA)))
@@ -328,7 +330,7 @@ load("./DATA/bodeData.mat",...
     
 
 %% 4.5.1. Validate best identifications qualitatively (frequency)
-j = 3;
+j = 2;
 squeeze(bestFitFit(:,j,:))
 squeeze(bestFitU(:,j,:))
 squeeze(bestFitCount(:,j,:))
@@ -336,7 +338,7 @@ squeeze(bestFitCount(:,j,:))
 %% 4.5.1. Validate best identifications qualitatively (pole zero position)
 poleValidation = true;
 nA = 6;
-b = 1;
+b = 4;
 if poleValidation
     % Pole
     load(folder+"polesZerosTrue/polesZerosTrue.mat",...
