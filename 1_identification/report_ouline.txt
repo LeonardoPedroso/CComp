@@ -1,0 +1,93 @@
+Abstract como introdução
+
+I. Introdução
+
+subsection{plant description}
+- Apresenta-se o setup 
+
+subsection{qualitative plant analysis}
+- Q1 -> possiveis modelos para a plant (tudo em Laplace s)
+-> polo do motor
+-> whiplash 
+-> pares de polos (1 par (Santi) ou 2 pares (Leo))
+-> responder à perguntas Q1
+-> formulas foto messeger (thta(s)/u(s) e alpha(s)/theta(s) -> passa alto de 2 ordem porque a deflexão depende da variação de velocidade) -> zeros seg para zero de fase não minima
+
+subsection{data acquisition} _> introdução ao procedimento experimental
+-> forma de adquirir dados -> teve de ser no simulink
+-> dar step e ver resposta responder a Q2
+
+II. 
+\subsection{input signals}
+-> generate input signals( 10 ondas -> 5 PRBS com B = [] 5 square waves f = [])
+-> falar da frequencia e dos seus efeitos, i.e., freqncia muito alta não da para identificar os modos lentos , uma frequência demasiado baixa não excita os modos de maior frequência 
+
+\subsecction{simulation}
+-> perform simulation -> ref a Fig,. do simulink
+-> flar da frequência de amostragem e do critério de nyquist (as frequências que não aparecerem vão ser vista como ruído colorido) -> não utilizar mínimos quadrados (não aguentam o ruído colorido) (f = 10, 50, 100)
+
+\subsection{preprocessing}
+-> diferenciação -> eliminar efeito integral
+-> preprocess -> filtro valor de lambda o que afeta (lambda mais importante para frequências de amostragem mais baixas por causa do ruído colorido que as frequências cortadas introduzem) 
+-> burn in (eliminar transiente mecanico)
+-> detrending 
+-> mostrar figuras para alguns lambdas (ver efeito da filtragem -> cortar frequências mais altas quanto maior for lambda)
+
+III. Identification 
+- Armarx (maxima verosimilhança) em vez de mínimos quadrados por causa o ruído colorido!!
+For para várias ordens identificação para cada uma para cada onda 
+- identidficacao por onda / por ordem / por frequência 3*10*48 = 1200 identificações!!!!
+
+
+IV. Validation (Validate the model in various forms)
+- treino com teste com as outras 9 ondas -> fit médio
+-> sort au logo de cada ordem n = 3 -> descendente 
+n = 4 descendente
+
+-> Coisas a ver nas com melhores fitness
+- polos / zeros
+- bode
+
+- Look at the simulated time response and discuss its plausibility;
+
+
+V. Post processing
+4. Add the integrator to the model (use the function conv)
+5. Convert the model to state-space form using the function tf2ss
+
+
+
+1. Select an input signal (for instance a square wave or a PRBS) and perform an experiment in which the plant is excited with it. Register the data.
+2. The plant output (angular position of the flexible bar tip) data has to be treated in order for the identification algorithm to work properly
+a. Remove constant offsets in data using the MATLAB function detrend
+b. Differentiate the plant output to remove the integrator associated to the motor and filter the output to eliminate high frequency dynamics and noise that fall outside the frequency band in which the model is to
+be valid. For that sake use the commands suggested above.
+3. Identify an ARMAX model using the function armax;
+
+
+6
+a. 
+b. 
+c. 
+d. The same for the pole-zero plot of the model identified.
+7. Review the process, changing the values of some parameters (filter pole, assumed model orders, sampling interval).
+
+The report must address the following issues:  Computer Control Laboratory Project Page 14
+• Explanation on the tests performed on the plant to obtain the data used for identification. Discuss the results obtained with different types of excitation signals and the effect of very small amplitude and very large amplitude excitation signals;
+• Discussion of the sampling frequency;
+• Effect on identification of filtering the data;
+• Explanation on how the pole at the origin has been dwelt with;
+• Discussion on how the model orders have been decided. Take into
+consideration that the plant results from the interconnection of a DC motor
+and the flexible bar and discuss the models needed for each of them;
+• Description of the final ARMAX model;
+• Description of the final state-space model.
+• Characterization of the plant open loop pole-zero plot, frequency response and
+time response of the model.
+• Model validation;
+
+
+
+
+subsection{}
+

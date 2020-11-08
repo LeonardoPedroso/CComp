@@ -3,7 +3,7 @@
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 11;
+RUN = 18;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 folder = sprintf("./DATA/4_PlantModelIdentification%02d/",RUN);
@@ -18,13 +18,13 @@ save(folder+"RUN.mat",...
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 11;
-T = 120; %(s) Duration of the stimulus
-Nfs = 3; % number of frequencies to test
-Nu = 10; % number of input signals (has to be even)
-uB_RBS_span = [0.1 0.3]; % (Hz) % Define PRBS bandwidth 
-uf_square_span = [0.2 0.6]; % (Hz) % Define square wave frequency
-fs_span = [100 1000];
+RUN = 18;
+T = 300;%T = 120; %(s) Duration of the stimulus
+Nfs = 1; % number of frequencies to test
+Nu = 6; % number of input signals (has to be even)
+uB_RBS_span = [0.01 0.03]; % (Hz) % Define PRBS bandwidth 
+uf_square_span = [0.01 0.03]; % (Hz) % Define square wave frequency
+%fs_span = [100 1000];
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -33,8 +33,9 @@ load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
 % Linear
 % fs = 500:-:50 %(Hz)
 % Logarithmic vector of sampling frequencies to test
-fs = 10.^(log10(fs_span(1)):(log10(fs_span(2))-log10(fs_span(1)))/(Nfs-1):...
-    log10(fs_span(2))); %(Hz)
+%fs = 10.^(log10(fs_span(1)):(log10(fs_span(2))-log10(fs_span(1)))/(Nfs-1):...
+    %log10(fs_span(2))); %(Hz)
+fs = 50;
 Ts = 1./fs; % (s) vector of sampling interval frequencies
 t = cell(Nfs,1);
  % Generate time spans for different sampling frequencies
@@ -43,6 +44,8 @@ for i = 1:Nfs
 end
 % Generate open loop input signals
 tic;
+% uB_PRBS = 0.03;
+% uf_square = 0.03;
 uB_PRBS = (uB_RBS_span(1):...
     (uB_RBS_span(2)-uB_RBS_span(1))/(Nu/2-1):uB_RBS_span(2))'; 
 uf_square = (uf_square_span(1):...
@@ -66,7 +69,7 @@ save(folder+"inputSignals.mat",...
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 11;
+RUN = 18;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -91,7 +94,7 @@ save(folder+"inputSignalsResponse.mat",...
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 11;
+RUN = 18;
 isTuning = false;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
@@ -201,7 +204,7 @@ end
 clear;
 % ---------------------------------------------------------------------- %
 % --------------------------- SET PARAMETERS --------------------------- %
-RUN = 11;
+RUN = 18;
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 % Load directory path
@@ -226,8 +229,6 @@ end
 % Find armax model for each model order, for each 
 tic;
 M = cell(Nu,Nfs,Nidentification);
-
-j = 1;
 for j = 1:Nfs
     for i = 1:Nu
         count = 0;
@@ -251,7 +252,7 @@ save(folder+"identificationCellArray.mat",...
 % ------------------------------------- %
 %% 4.5 Model validation                
 clear;
-RUN = 11;
+RUN = 18;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
@@ -267,6 +268,7 @@ load(folder+"identificationCellArray.mat",...
 % Get fitness of each model
 tic;
 fitM = zeros(Nu,Nfs,Nidentification);
+ 
 for j = 1:Nfs
     for i = 1:Nu
         for count = 1:Nidentification
@@ -275,7 +277,7 @@ for j = 1:Nfs
                     % Do not use own test as validation
                     continue;
                 end
-                [~,fit] = compare([yf{i,j} uf{i,j}],M{i,j,count});
+                [yfm,fit] = compare([yf{i,j} uf{i,j}],M{i,j,count});
                 fitM(i,j,count) = fitM(i,j,count)+fit/(Nu-1);
             end  
         end
@@ -305,14 +307,12 @@ for j = 1:Nfs
 end
 toc;
 
-
-
 % Save identification fitness data
 save(folder+"identificationFitness.mat",...
     'fitM','bestFitFit','bestFitCount','bestFitU');
 %% 4.5.1 Check results
 clear;
-RUN = 11;
+RUN = 18;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
@@ -325,17 +325,19 @@ load(folder+"inputSignals.mat",...
         'fs','Ts');
 load("./DATA/bodeData.mat",...
         'trueMag','truePhase','w');
-    
-
-%% 4.5.1. Validate best identifications qualitatively (frequency)
-j = 3;
+    % Load filtered responses
+load(folder+"identificationCellArray.mat",...
+    'nABCK');
+ %%
+% 4.5.1. Validate best identifications qualitatively (frequency)
+j =1;
 squeeze(bestFitFit(:,j,:))
 squeeze(bestFitU(:,j,:))
 squeeze(bestFitCount(:,j,:))
 
-%% 4.5.1. Validate best identifications qualitatively (pole zero position)
-poleValidation = true;
-nA = 6;
+% 4.5.1. Validate best identifications qualitatively (pole zero position)
+poleValidation = false;
+nA = 3;
 b = 1;
 if poleValidation
     % Pole
@@ -344,18 +346,19 @@ if poleValidation
     [den, num] = polydata(M{bestFitU(nA-2,j,b),j,bestFitCount(nA-2,j,b)});
     den = conv(den,[1 -1]); % Add integrator
     figure();
-    zplane(numTrue{j,1},denTrue{j,1});
+    axis([-1.5 1.5 -1.5 1.5]);
     hold on;
+    zplane(numTrue{j,1},denTrue{j,1});
+    
     [hz2, hp2, ht2] = zplane(num,den);
     set(findobj(hz2, 'Type', 'line'), 'Color', [0.8500, 0.3250, 0.0980]);
     set(findobj(hp2, 'Type', 'line'), 'Color', [0.8500, 0.3250, 0.0980]);
-    axis([-1.5 1.5 -1.5 1.5]);
+    %axis([-1.5 1.5 -1.5 1.5]);
     hold off
     
     % Bode
     [mag,phase,wout] = bode(tf(num,den,Ts(j)),w);
     figure();
-
     semilogx(squeeze(w),20*log10(squeeze(trueMag)));
     hold on;
     semilogx(squeeze(w),20*log10(squeeze(mag)));
@@ -368,63 +371,58 @@ if poleValidation
     hold on;
     semilogx(squeeze(w),squeeze(phase));
     hold off;
-    
 end
 
+load(folder+"inputSignalsResponseProcessed.mat",...
+        'yf','uf','lambda');
+    %%
 % ---------------------------------------------------------------------- %
 % ------------------------ CHOOSE IDENTIFICATION ----------------------- %
-chooseIdentification = false;
+chooseIdentification = true;
+nA = 3; % order
+b = 2; % b-th best
 j = 1;
-nA = 5; % order
-b = 1; % b-th best
 % ---------------------------------------------------------------------- %
 % ---------------------------------------------------------------------- %
 if chooseIdentification 
     MId = M{bestFitU(nA-2,j,b),j,bestFitCount(nA-2,j,b)};
-    fsId = fs(j);
-    TsId = Ts(j);
     orderId = nABCK(bestFitCount(nA-2,j,b),:);
+    fsId = fs(j);
+    TsId = 1/fs(j);
     fitId = bestFitFit(nA-2,j,b);
-    [denId_, numId_] = polydata(MId);
+    m_tf = idtf(idss(MId));
+    [numId_,denId_] = tfdata(m_tf);
+    numId_ = cell2mat(numId_);
+    denId_ = cell2mat(denId_);
+    %zplane(numId_,denId_)
     polesId_ = pole(tf(numId_,denId_,Ts(j)));
     zerosId_ = pole(tf(numId_,denId_,Ts(j)));
-    figure('units','normalized','outerposition',[0 0 1 1]);
-    hold on;
-    set(gca,'FontSize',35);
-    ax = gca;
-    ax.XGrid = 'on';
-    ax.YGrid = 'on';
-    p = zplane(numId_,denId_); 
-    saveas(gcf,folder+...
-        sprintf("polesZerosID_j%02d.fig",...
-        j));
-    saveas(gcf,folder+...
-        sprintf("polesZerosID_j%02d.png",...
-        j));
-    hold off;
+%     figure();
+%     compare([yf{9,j} uf{9,j}],MId)
     save(folder+"identification.mat",...
         'MId','fsId','TsId','orderId','fitId','polesId_','zerosId_',...
         'denId_', 'numId_');
 end
 
 %% 4.6 Postprocessing
-choosenIdentification = false;
+choosenIdentification = true;
 if choosenIdentification
-    clear;
-    RUN = 11;
+    %clear;
+    RUN = 18;
     % Load directory path
     load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
         'folder');
     % Load identification
     load(folder+"identification.mat",...
-        'MId','fsId','orderId','fitId','polesId_','zerosId_',...
+        'MId','fsId','TsId','orderId','fitId','polesId_','zerosId_',...
         'denId_', 'numId_');
     % Add integrator
-    [numId,denId] = eqtflength(numId_,conv(denId_,[1 -1]));
+    numId = numId_;
+    denId = conv(denId_,[1 -1]);
     [AId,BId,CId,DId] = tf2ss(numId,denId);
-
-    polesId = pole(tf(num,den,TsId));
-    zerosId = pole(tf(num,den,TsId));
+    
+    polesId = pole(tf(numId,denId,TsId));
+    zerosId = zero(tf(numId,denId,TsId));
 
     save(folder+"identification.mat",...
         'MId','fsId', 'TsId','orderId','fitId','polesId_','zerosId_',...
@@ -433,7 +431,7 @@ if choosenIdentification
 end
 %% 4.\infty Batota :)
 clear;
-RUN = 11;
+RUN = 18;
 % Load directory path
 load(sprintf("./DATA/4_PlantModelIdentification%02d/"+"RUN.mat",RUN),...
     'folder');
